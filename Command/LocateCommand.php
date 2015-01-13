@@ -27,7 +27,9 @@ class LocateCommand extends ContainerAwareCommand
     {
         $this
             ->setName('meup_geolocation:locator:locate')
-            ->setDescription('Get the weekly movies sessions program.')
+            ->setDescription('')
+            ->addArgument('location', InputArgument::REQUIRED, '')
+            ->addOption('provider')
         ;
     }
 

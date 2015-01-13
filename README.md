@@ -133,3 +133,8 @@ See detailed [Google](Resources/doc/provider/google.md#create-an-api-key) and [B
 *  [Hydratation](Resources/doc/custom-hydrator.md)
 *  [Provider](Resources/doc/custom-provider.md)
 *  [Configuration](Resources/doc/configuration.md)
+
+Supported commands
+------------------
+
+*  [Locate](Resources/doc/command-locate.md)
