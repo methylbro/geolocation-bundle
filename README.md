@@ -135,6 +135,7 @@ See detailed [Google](Resources/doc/provider/google.md#create-an-api-key) and [B
 
 ### Customization
 
+*  [Cache](Resources/doc/cache.md)
 *  [Model](Resources/doc/custom-model.md)
 *  [Hydratation](Resources/doc/custom-hydrator.md)
 *  [Provider](Resources/doc/custom-provider.md)
