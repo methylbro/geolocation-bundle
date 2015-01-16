@@ -27,6 +27,9 @@
         "phing/phing":               "~2.9",
         "sami/sami":                 "2.0.*"
     },
+    "suggest": {
+        "1001pharmacies/cache-bundle": "Geocoding results will be cached instead of making requests all the time"
+    },
     "autoload": {
         "psr-0": {
             "Meup\\Bundle\\GeoLocationBundle": ""
