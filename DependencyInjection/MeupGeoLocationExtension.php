@@ -81,7 +81,7 @@ class MeupGeoLocationExtension extends Extension
             new Definition(
                 $config['handlers']['locator_manager'],
                 array(
-                    new Reference('logger'),
+                    new Reference('meup_cache.filesystem')
                 )
             )
         );
