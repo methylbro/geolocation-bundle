@@ -11,21 +11,33 @@
 
 namespace Meup\Bundle\GeoLocationBundle\Handler;
 
+use Psr\Cache\CacheItemPoolInterface;
 use Meup\Bundle\GeoLocationBundle\Model\LocationInterface;
 use Meup\Bundle\GeoLocationBundle\Model\AddressInterface;
 use Meup\Bundle\GeoLocationBundle\Model\CoordinatesInterface;
 
 /**
- *
+ * 
  */
 class LocatorManager implements LocatorManagerInterface
 {
-    protected $logger = null;
-
     /**
      * @var Array
      */
     protected $locators = array();
+
+    /**
+     * @var Psr\Cache\CacheItemPoolInterface
+     */
+    protected $cache;
+
+    /**
+     *
+     */
+    public function __construct(CacheItemPoolInterface $cache = null)
+    {
+        $this->cache = $cache;
+    }
 
     /**
      * {@inheritDoc}
@@ -48,39 +60,40 @@ class LocatorManager implements LocatorManagerInterface
     /**
      * {@inheritDoc}
      */
-    public function locate(LocationInterface $location)
+    public function locate(LocationInterface $location, $force = false)
     {
-        $key     = rand(0, count($this->locators)-1);
-        $locator = $this->locators[$key];
-        $result  = $locator->locate($location);
+        $result = null;
 
-        if ($this->logger) {
-            if ($location instanceof AddressInterface) {
-                $this
-                    ->logger
-                    ->debug(
-                        'Geocoding : Find coordinates by address',
-                        array(
-                            'address'   => $location->getFullAddress(),
-                            'latitude'  => $result->getLatitude(),
-                            'longitude' => $result->getLongitude(),
+        if ($this->cache) {
+
+            $item = $this
+                ->cache
+                ->getItem(
+                    $location instanceof AddressInterface 
+                        ? $location->getFullAddress() 
+                        : (
+                            $location instanceof CoordinatesInterface 
+                                ? sprintf('%s,%s',
+                                    $location->getLatitude(),
+                                    $location->getLongitude()
+                                )
+                                : null
                         )
-                    )
-                ;
+                )
+            ;
+
+            if (!$force && $item->exists()) {
+                $result = $item->get();
             }
+        }
 
-            if ($location instanceof CoordinatesInterface) {
-                $this
-                    ->logger
-                    ->debug(
-                        'Geocoding : Locate address by coordinates',
-                        array(
-                            'address'   => $result->getFullAddress(),
-                            'latitude'  => $location->getLatitude(),
-                            'longitude' => $location->getLongitude(),
-                        )
-                    )
-                ;
+        if (!$result) {
+            $key     = rand(0, count($this->locators)-1);
+            $locator = $this->locators[$key];
+            $result  = $locator->locate($location);
+
+            if ($this->cache) {
+                $this->cache->save($item->set($result));
             }
         }
 
