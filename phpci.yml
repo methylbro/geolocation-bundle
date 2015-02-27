@@ -2,7 +2,6 @@ build_settings:
   verbose: false
   ignore:
     - "vendor"
-    - "Tests"
 
 setup:
   composer:
@@ -12,4 +11,4 @@ setup:
 test:
   php_loc:
   php_unit:
-
+  php_mess_detector:
