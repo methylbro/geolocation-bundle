@@ -11,4 +11,3 @@ setup:
 test:
   php_loc:
   php_unit:
-  php_mess_detector:
