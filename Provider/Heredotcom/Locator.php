@@ -1,15 +1,15 @@
 <?php
 
 /**
-* This file is part of the Meup GeoLocation Bundle.
-*
-* (c) 1001pharmacies <http://github.com/1001pharmacies/geolocation-bundle>
-*
-* For the full copyright and license information, please view the LICENSE
-* file that was distributed with this source code.
-*/
+ * This file is part of the Meup GeoLocation Bundle.
+ *
+ * (c) 1001pharmacies <http://github.com/1001pharmacies/geolocation-bundle>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
-namespace Meup\Bundle\GeoLocationBundle\Provider\Google;
+namespace Meup\Bundle\GeoLocationBundle\Provider\Heredotcom;
 
 use Psr\Log\LoggerInterface;
 use Guzzle\Http\Client as HttpClient;
@@ -19,9 +19,9 @@ use Meup\Bundle\GeoLocationBundle\Model\AddressInterface;
 use Meup\Bundle\GeoLocationBundle\Model\CoordinatesInterface;
 
 /**
- * Google's Geocoding API
+ * Mapquest's Geocoding API
  *
- * @link https://developers.google.com/maps/documentation/geocoding/
+ * @link http://open.mapquestapi.com/geocoding/
  */
 class Locator extends BaseLocator
 {
@@ -38,7 +38,12 @@ class Locator extends BaseLocator
     /**
      * @var string
      */
-    protected $api_key;
+    protected $app_code;
+
+    /**
+     * @var string
+     */
+    protected $app_id;
 
     /**
      * @var string
@@ -46,40 +51,62 @@ class Locator extends BaseLocator
     protected $api_endpoint;
 
     /**
+     * @var string
+     */
+    protected $api_reverse_endpoint;
+
+    /**
      * @param HydratorInterface $hydrator
      * @param HttpClient $client
      * @param LoggerInterface $logger
      * @param string $api_key
      * @param string $api_endpoint
+     * @throws \Exception
      */
     public function __construct(HydratorInterface $hydrator, HttpClient $client, LoggerInterface $logger, $api_key = null, $api_endpoint)
     {
         parent::__construct($logger);
         $this->hydrator     = $hydrator;
         $this->client       = $client;
-        $this->api_key      = $api_key;
-        $this->api_endpoint = $api_endpoint;
+        $api_params         = explode(';', $api_key);
+        if(count($api_params) != 2) {
+            throw new \Exception('Bad Api Key, see doc.');
+        }
+        $this->app_id       = $api_params[0];
+        $this->app_code     = $api_params[1];
+
+        $api_endpoints      = explode(';', $api_endpoint);
+        if(count($api_endpoints) != 2) {
+            throw new \Exception('Bad Api EndPoints, see doc.');
+        }
+        $this->api_endpoint = $api_endpoint[0];
+        $this->api_reverse_endpoint = $api_endpoint[1];
     }
 
     /**
      * @param string $type
      * @param Array $response
-     *
      * @return \Meup\Bundle\GeoLocationBundle\Model\LocationInterface
+     * @throws \Exception
      */
     protected function populate($type, $response)
     {
-        if ($response['status']!='OK') {
+        if (count($response['Response']['View']) == 0 || array_key_exists('Result', $response['Response']['View'][0]) === false) {
+            throw new \Exception('No results found.');
+        }
+
+        // if relevance too low, consided like No Result Found.
+        if($response['Response']['View'][0]['Result'][0]['Relevance'] <= 0.50) {
             throw new \Exception('No results found.');
         }
 
         return $this
             ->hydrator
             ->hydrate(
-                $response['results'],
+                $response['Response']['View'],
                 $type
             )
-        ;
+            ;
     }
 
     /**
@@ -93,10 +120,11 @@ class Locator extends BaseLocator
                 ->client
                 ->get(
                     sprintf(
-                        '%s?address=%s&key=%s',
+                        '%s?searchtext=%s&app_id=%s&app_code=%s&gen=8maxresults=1',
                         $this->api_endpoint,
                         $address->getFullAddress(),
-                        $this->api_key
+                        $this->app_id,
+                        $this->app_code
                     )
                 )
                 ->send()
@@ -108,7 +136,7 @@ class Locator extends BaseLocator
             ->debug(
                 'Locate coordinates by address',
                 array(
-                    'provider'  => 'google',
+                    'provider'  => 'heredotcom',
                     'address'   => $address->getFullAddress(),
                     'latitude'  => $coordinates->getLatitude(),
                     'longitude' => $coordinates->getLongitude(),
@@ -130,11 +158,12 @@ class Locator extends BaseLocator
                 ->client
                 ->get(
                     sprintf(
-                        '%s?latlng=%d,%d&key=%s',
-                        $this->api_endpoint,
+                        '%s?prox=%d,%d&mode=retrieveAddresses&app_id=%s&app_code=%s&gen=8maxresults=1',
+                        $this->api_reverse_endpoint,
                         $coordinates->getLatitude(),
                         $coordinates->getLongitude(),
-                        $this->api_key
+                        $this->app_id,
+                        $this->app_code
                     )
                 )
                 ->send()
@@ -146,7 +175,7 @@ class Locator extends BaseLocator
             ->debug(
                 'Locate address by coordinates',
                 array(
-                    'provider'  => 'google',
+                    'provider'  => 'heredotcom',
                     'address'   => $address->getFullAddress(),
                     'latitude'  => $coordinates->getLatitude(),
                     'longitude' => $coordinates->getLongitude(),
